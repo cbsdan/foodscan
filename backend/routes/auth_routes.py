@@ -4,9 +4,14 @@ from utils.jwt_utils import token_required
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
+@auth_bp.route('/send-otp', methods=['POST'])
+def send_otp():
+    """Send OTP to email for registration"""
+    return AuthController.send_registration_otp(request.get_json())
+
 @auth_bp.route('/register', methods=['POST'])
 def register():
-    """Register a new user"""
+    """Register a new user with OTP verification"""
     return AuthController.register(request.get_json())
 
 @auth_bp.route('/login', methods=['POST'])

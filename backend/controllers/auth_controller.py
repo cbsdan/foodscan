@@ -7,14 +7,59 @@ import logging
 class AuthController:
     
     @staticmethod
+    def send_registration_otp(request_data):
+        """Send OTP to email for registration verification"""
+        try:
+            email = request_data.get('email')
+            
+            if not email:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email is required'
+                }), 400
+            
+            # Check if email already exists
+            db = get_db()
+            user_model = User(db)
+            if user_model.find_by_email(email):
+                return jsonify({
+                    'success': False,
+                    'message': 'Email already registered'
+                }), 400
+            
+            # Send OTP
+            from services.email_service import OTPService
+            success, message = OTPService.send_otp_email(email, purpose="registration")
+            
+            if success:
+                logging.info(f"Registration OTP sent to: {email}")
+                return jsonify({
+                    'success': True,
+                    'message': 'OTP sent to your email. Please verify to complete registration.'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), 500
+                
+        except Exception as e:
+            logging.error(f"Send OTP error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while sending OTP'
+            }), 500
+    
+    @staticmethod
     def register(request_data):
-        """Register a new user"""
+        """Register a new user with OTP verification"""
         try:
             email = request_data.get('email')
             username = request_data.get('username')
             password = request_data.get('password')
             first_name = request_data.get('first_name')
             last_name = request_data.get('last_name')
+            otp = request_data.get('otp')
             
             if not email or not username or not password:
                 return jsonify({
@@ -22,6 +67,23 @@ class AuthController:
                     'message': 'Email, username, and password are required'
                 }), 400
             
+            if not otp:
+                return jsonify({
+                    'success': False,
+                    'message': 'OTP is required. Please request OTP first.'
+                }), 400
+            
+            # Verify OTP
+            from services.email_service import OTPService
+            is_valid, message = OTPService.verify_otp(email, otp)
+            
+            if not is_valid:
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), 400
+            
+            # Create user after OTP verification
             db = get_db()
             user_model = User(db)
             user = user_model.create_user(
@@ -32,7 +94,17 @@ class AuthController:
                 last_name=last_name
             )
             
+            # Mark user as verified
+            user_model.update_user(user['_id'], {'is_verified': True})
+            user = user_model.find_by_id(user['_id'])
+            
             token = generate_token(user['_id'])
+            
+            # Send welcome email
+            try:
+                OTPService.send_welcome_email(email, first_name or username)
+            except:
+                pass  # Don't fail registration if welcome email fails
             
             logging.info(f"User registered successfully: {email}")
             

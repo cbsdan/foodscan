@@ -57,37 +57,37 @@ from datetime import datetime
 def create_otp_email_template(otp, purpose="verification"):
     """Create HTML email template for OTP — FoodScan branding"""
     return f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e9e9e9; border-radius: 8px; background-color: #ffffff;">
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #b0b8ae; border-radius: 8px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="color: #FF6B35; margin: 0; font-size: 28px;">FoodScan</h1>
-            <p style="color: #6b6b6b; margin: 6px 0 0 0; font-size: 14px;">Instant nutrient estimates from food photos</p>
-            <div style="height: 4px; background: linear-gradient(to right, #FF6B35, #2E7D32); margin: 12px auto; width: 100px; border-radius: 2px;"></div>
+            <h1 style="color: #2ea043; margin: 0; font-size: 28px;">FoodScan</h1>
+            <p style="color: #3a3a3a; margin: 6px 0 0 0; font-size: 14px;">Instant nutrient estimates from food photos</p>
+            <div style="height: 4px; background: linear-gradient(to right, #2ea043, #4caf50); margin: 12px auto; width: 100px; border-radius: 2px;"></div>
         </div>
 
-        <div style="background-color: #fbfbfb; padding: 22px; border-radius: 8px; margin-bottom: 20px;">
-            <h2 style="color: #2E7D32; margin: 0 0 12px 0; text-align: center;">Email {purpose.title()}</h2>
-            <p style="color: #444; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 18px 0;">
+        <div style="background-color: #f5f5f5; padding: 22px; border-radius: 8px; margin-bottom: 20px;">
+            <h2 style="color: #2ea043; margin: 0 0 12px 0; text-align: center;">Email {purpose.title()}</h2>
+            <p style="color: #222222; font-size: 15px; line-height: 1.6; text-align: center; margin: 0 0 18px 0;">
                 Use the One-Time Password below to complete your {purpose}.
             </p>
 
             <div style="text-align: center; margin: 20px 0;">
-                <div style="font-size: 34px; font-weight: 700; letter-spacing: 6px; padding: 18px 26px; background-color: #ffffff; border: 2px solid #FF6B35; border-radius: 8px; color: #FF6B35; display: inline-block;">
+                <div style="font-size: 34px; font-weight: 700; letter-spacing: 6px; padding: 18px 26px; background-color: #ffffff; border: 2px solid #2ea043; border-radius: 8px; color: #2ea043; display: inline-block;">
                     {otp}
                 </div>
-                <p style="color: #888; font-size: 13px; margin-top: 12px;">This code expires in 10 minutes.</p>
+                <p style="color: #3a3a3a; font-size: 13px; margin-top: 12px;">This code expires in 10 minutes.</p>
             </div>
         </div>
 
-        <div style="padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; background-color: #f7fff7;">
-            <p style="color: #333; font-size: 13px; margin: 0;">
+        <div style="padding: 14px 18px; border-radius: 8px; margin-bottom: 16px; background-color: #c7cec5;">
+            <p style="color: #222222; font-size: 13px; margin: 0;">
                 Why FoodScan? Fast nutrient estimates. Photo-based portion sizing. Actionable nutrition info.
             </p>
         </div>
 
-        <div style="text-align: center; padding: 16px 0; border-top: 1px solid #eee; color: #999; font-size: 13px;">
+        <div style="text-align: center; padding: 16px 0; border-top: 1px solid #b0b8ae; color: #3a3a3a; font-size: 13px;">
             <p style="margin: 0 0 8px 0;">If you did not request this, ignore this message.</p>
             <p style="margin: 0;">Support: support@foodscan.example</p>
-            <p style="margin: 12px 0 0 0; font-weight: 600;">&copy; {datetime.now().year} FoodScan</p>
+            <p style="margin: 12px 0 0 0; font-weight: 600; color: #222222;">&copy; {datetime.now().year} FoodScan</p>
         </div>
     </div>
     """
@@ -95,23 +95,23 @@ def create_otp_email_template(otp, purpose="verification"):
 def create_welcome_email_template(user_name):
     """Create welcome email template — FoodScan branding"""
     return f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e9e9e9; border-radius: 8px; background-color: #ffffff;">
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #b0b8ae; border-radius: 8px; background-color: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="color: #FF6B35; margin: 0; font-size: 28px;">Welcome to FoodScan</h1>
-            <p style="color: #6b6b6b; margin: 6px 0 0 0; font-size: 14px;">Smart nutrition from photos</p>
-            <div style="height: 4px; background: linear-gradient(to right, #FF6B35, #2E7D32); margin: 12px auto; width: 150px; border-radius: 2px;"></div>
+            <h1 style="color: #2ea043; margin: 0; font-size: 28px;">Welcome to FoodScan</h1>
+            <p style="color: #3a3a3a; margin: 6px 0 0 0; font-size: 14px;">Smart nutrition from photos</p>
+            <div style="height: 4px; background: linear-gradient(to right, #2ea043, #4caf50); margin: 12px auto; width: 150px; border-radius: 2px;"></div>
         </div>
 
         <div style="margin-bottom: 20px;">
-            <h2 style="color: #2E7D32; margin: 0 0 12px 0;">Hello {user_name},</h2>
-            <p style="color: #444; font-size: 15px; line-height: 1.6; margin: 0 0 14px 0;">
+            <h2 style="color: #2ea043; margin: 0 0 12px 0;">Hello {user_name},</h2>
+            <p style="color: #222222; font-size: 15px; line-height: 1.6; margin: 0 0 14px 0;">
                 Your FoodScan account is ready. You can now estimate calories and nutrients by taking photos of your meals.
             </p>
         </div>
 
-        <div style="background-color: #fbfbfb; padding: 20px; border-radius: 8px; margin-bottom: 18px;">
-            <h3 style="color: #FF6B35; margin: 0 0 12px 0;">Get started</h3>
-            <ul style="color: #444; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 18px; border: 1px solid #b0b8ae;">
+            <h3 style="color: #2ea043; margin: 0 0 12px 0;">Get started</h3>
+            <ul style="color: #222222; font-size: 14px; line-height: 1.7; margin: 0; padding-left: 20px;">
                 <li>Complete your profile</li>
                 <li>Take a photo of a meal to estimate nutrients</li>
                 <li>Save favorites and track intake</li>
@@ -120,14 +120,14 @@ def create_welcome_email_template(user_name):
         </div>
 
         <div style="text-align: center; margin: 18px 0;">
-            <a href="#" style="background-color: #2E7D32; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; display: inline-block;">
+            <a href="#" style="background-color: #2ea043; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: 700; display: inline-block;">
                 Open FoodScan
             </a>
         </div>
 
-        <div style="text-align: center; padding: 14px 0; border-top: 1px solid #eee; color: #999; font-size: 13px;">
+        <div style="text-align: center; padding: 14px 0; border-top: 1px solid #b0b8ae; color: #3a3a3a; font-size: 13px;">
             <p style="margin: 0 0 8px 0;">Need help? support@foodscan.example</p>
-            <p style="margin: 12px 0 0 0; font-weight: 600;">&copy; {datetime.now().year} FoodScan</p>
+            <p style="margin: 12px 0 0 0; font-weight: 600; color: #222222;">&copy; {datetime.now().year} FoodScan</p>
         </div>
     </div>
     """
