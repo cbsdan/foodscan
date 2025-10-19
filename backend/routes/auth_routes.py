@@ -37,6 +37,21 @@ def change_password():
     """Change user password"""
     return AuthController.change_password(request.get_json())
 
+@auth_bp.route('/forgot-password/send-otp', methods=['POST'])
+def forgot_password_send_otp():
+    """Send OTP to email for password reset"""
+    return AuthController.send_forgot_password_otp(request.get_json())
+
+@auth_bp.route('/forgot-password/verify-otp', methods=['POST'])
+def forgot_password_verify_otp():
+    """Verify OTP for password reset"""
+    return AuthController.verify_forgot_password_otp(request.get_json())
+
+@auth_bp.route('/forgot-password/reset', methods=['POST'])
+def reset_password():
+    """Reset password after OTP verification"""
+    return AuthController.reset_password(request.get_json())
+
 @auth_bp.route('/avatar', methods=['POST'])
 @token_required
 def update_avatar():

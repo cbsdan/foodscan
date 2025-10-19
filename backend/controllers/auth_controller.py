@@ -344,6 +344,207 @@ class AuthController:
             }), 500
     
     @staticmethod
+    def send_forgot_password_otp(request_data):
+        """Send OTP to email for password reset"""
+        try:
+            email = request_data.get('email')
+            
+            if not email:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email is required'
+                }), 400
+            
+            # Check if email exists
+            db = get_db()
+            user_model = User(db)
+            user = user_model.find_by_email(email)
+            
+            if not user:
+                # For security, don't reveal if email exists or not
+                return jsonify({
+                    'success': True,
+                    'message': 'If the email exists, an OTP has been sent.'
+                }), 200
+            
+            # Send OTP
+            from services.email_service import OTPService
+            success, message = OTPService.send_otp_email(email, purpose="password reset")
+            
+            if success:
+                logging.info(f"Password reset OTP sent to: {email}")
+                return jsonify({
+                    'success': True,
+                    'message': 'OTP sent to your email. Please verify to reset your password.'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to send OTP. Please try again.'
+                }), 500
+                
+        except Exception as e:
+            logging.error(f"Send forgot password OTP error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while sending OTP'
+            }), 500
+    
+    @staticmethod
+    def verify_forgot_password_otp(request_data):
+        """Verify OTP for password reset"""
+        try:
+            email = request_data.get('email')
+            otp = request_data.get('otp')
+            
+            if not email or not otp:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email and OTP are required'
+                }), 400
+            
+            # Verify OTP
+            from services.email_service import OTPService
+            is_valid, message = OTPService.verify_otp(email, otp)
+            
+            if not is_valid:
+                return jsonify({
+                    'success': False,
+                    'message': message
+                }), 400
+            
+            # Generate a temporary token for password reset (valid for 15 minutes)
+            from services.email_service import generate_otp
+            reset_token = generate_otp(length=32)
+            
+            # Store reset token temporarily (in production, use Redis)
+            from services.email_service import otp_store
+            from datetime import datetime
+            otp_store[f"reset_{email}"] = {
+                'token': reset_token,
+                'expires_at': datetime.now().timestamp() + (15 * 60)
+            }
+            
+            logging.info(f"OTP verified for password reset: {email}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'OTP verified successfully',
+                'data': {
+                    'reset_token': reset_token
+                }
+            }), 200
+            
+        except Exception as e:
+            logging.error(f"Verify forgot password OTP error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while verifying OTP'
+            }), 500
+    
+    @staticmethod
+    def reset_password(request_data):
+        """Reset password after OTP verification"""
+        try:
+            email = request_data.get('email')
+            reset_token = request_data.get('reset_token')
+            new_password = request_data.get('new_password')
+            
+            if not email or not reset_token or not new_password:
+                return jsonify({
+                    'success': False,
+                    'message': 'Email, reset token, and new password are required'
+                }), 400
+            
+            # Verify reset token
+            from services.email_service import otp_store
+            from datetime import datetime
+            
+            stored_data = otp_store.get(f"reset_{email}")
+            
+            if not stored_data:
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid or expired reset token'
+                }), 400
+            
+            if datetime.now().timestamp() > stored_data['expires_at']:
+                del otp_store[f"reset_{email}"]
+                return jsonify({
+                    'success': False,
+                    'message': 'Reset token has expired'
+                }), 400
+            
+            if stored_data['token'] != reset_token:
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid reset token'
+                }), 400
+            
+            # Reset password
+            db = get_db()
+            user_model = User(db)
+            user = user_model.find_by_email(email)
+            
+            if not user:
+                return jsonify({
+                    'success': False,
+                    'message': 'User not found'
+                }), 404
+            
+            # Validate new password
+            if len(new_password) < 6:
+                return jsonify({
+                    'success': False,
+                    'message': 'Password must be at least 6 characters long'
+                }), 400
+            
+            # Update password directly in MongoDB (bypass update_user which strips password field)
+            from werkzeug.security import generate_password_hash
+            from bson.objectid import ObjectId
+            hashed_password = generate_password_hash(new_password)
+            
+            result = user_model.collection.update_one(
+                {"_id": ObjectId(user['_id'])},
+                {
+                    "$set": {
+                        "password": hashed_password,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if result.modified_count == 0:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to update password'
+                }), 500
+            
+            # Clean up reset token
+            del otp_store[f"reset_{email}"]
+            
+            logging.info(f"Password reset successfully for: {email}")
+            
+            return jsonify({
+                'success': True,
+                'message': 'Password reset successfully. You can now login with your new password.'
+            }), 200
+            
+        except ValueError as e:
+            logging.warning(f"Reset password validation error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            }), 400
+            
+        except Exception as e:
+            logging.error(f"Reset password error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'message': 'An error occurred while resetting password'
+            }), 500
+    
+    @staticmethod
     def update_avatar(file):
         """Update user avatar/profile image"""
         try:

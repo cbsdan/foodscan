@@ -15,6 +15,7 @@ from services.ml_service import init_ml_service
 
 #Routes
 from routes.auth_routes import auth_bp
+from routes.nutrient_routes import nutrient_bp
 
 # Load environment variables
 load_dotenv()
@@ -103,6 +104,7 @@ def create_app():
     
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(nutrient_bp)
     
     return app
 
