@@ -54,6 +54,13 @@ class User:
         user = self.collection.find_one({"email": email.lower()})
         return self._serialize_user(user) if user else None
     
+    def find_by_email_with_password(self, email):
+        """Find user by email with password (for authentication)"""
+        user = self.collection.find_one({"email": email.lower()})
+        if user:
+            user['_id'] = str(user['_id'])
+        return user
+    
     def find_by_id(self, user_id):
         """Find user by ID"""
         try:
@@ -66,6 +73,13 @@ class User:
         """Find user by username"""
         user = self.collection.find_one({"username": username.lower()})
         return self._serialize_user(user) if user else None
+    
+    def find_by_username_with_password(self, username):
+        """Find user by username with password (for authentication)"""
+        user = self.collection.find_one({"username": username.lower()})
+        if user:
+            user['_id'] = str(user['_id'])
+        return user
     
     def verify_password(self, user, password):
         """Verify user password"""
@@ -92,9 +106,12 @@ class User:
     
     def change_password(self, user_id, old_password, new_password):
         """Change user password"""
-        user = self.find_by_id(user_id)
+        # Need to get user with password for verification
+        user = self.collection.find_one({"_id": ObjectId(user_id)})
         if not user:
             raise ValueError("User not found")
+        
+        user['_id'] = str(user['_id'])
         
         if not self.verify_password(user, old_password):
             raise ValueError("Current password is incorrect")

@@ -83,6 +83,9 @@ class AuthController:
                     'message': message
                 }), 400
             
+            # Log for debugging (remove in production)
+            logging.info(f"Creating user with email: {email}, username: {username}, password length: {len(password)}")
+            
             # Create user after OTP verification
             db = get_db()
             user_model = User(db)
@@ -144,13 +147,23 @@ class AuthController:
                     'message': 'Email/username and password are required'
                 }), 400
             
+            # Log for debugging (remove in production)
+            logging.info(f"Login attempt for: {login_identifier}, password length: {len(password)}")
+            
             db = get_db()
             user_model = User(db)
             
+            # Get user with password for authentication
             if '@' in login_identifier:
-                user = user_model.find_by_email(login_identifier)
+                user = user_model.find_by_email_with_password(login_identifier)
             else:
-                user = user_model.find_by_username(login_identifier)
+                user = user_model.find_by_username_with_password(login_identifier)
+            
+            # Debug logging
+            if user:
+                logging.info(f"User found: {user.get('email')}, has password: {'password' in user}")
+            else:
+                logging.info(f"User not found for: {login_identifier}")
             
             if not user or not user_model.verify_password(user, password):
                 logging.warning(f"Failed login attempt for: {login_identifier}")
@@ -166,6 +179,9 @@ class AuthController:
                 }), 403
             
             token = generate_token(user['_id'])
+            
+            # Remove password before sending response
+            user.pop('password', None)
             
             logging.info(f"User logged in successfully: {login_identifier}")
             
