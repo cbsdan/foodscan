@@ -215,6 +215,40 @@ export const authService = {
       return { success: false, message: 'Token verification failed' };
     }
   },
+
+  // Send OTP for forgot password
+  sendForgotPasswordOTP: async (email) => {
+    try {
+      const response = await api.post('/auth/forgot-password/send-otp', { email });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to send OTP');
+    }
+  },
+
+  // Verify OTP for forgot password
+  verifyForgotPasswordOTP: async (email, otp) => {
+    try {
+      const response = await api.post('/auth/forgot-password/verify-otp', { email, otp });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to verify OTP');
+    }
+  },
+
+  // Reset password with token
+  resetPassword: async (email, resetToken, newPassword) => {
+    try {
+      const response = await api.post('/auth/forgot-password/reset', {
+        email,
+        reset_token: resetToken,
+        new_password: newPassword
+      });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to reset password');
+    }
+  },
 };
 
 // Export the axios instance for custom requests

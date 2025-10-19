@@ -10,14 +10,23 @@ import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator } from 'rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { FontAwesome } from '@expo/vector-icons';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import IntroScreen from './screens/IntroScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
+import HomeScreen from './screens/HomeScreen';
+import FoodScanScreen from './screens/FoodScanScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import EditProfileScreen from './screens/EditProfileScreen';
+import ChangePasswordScreen from './screens/ChangePasswordScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
 
 // Auth Navigator - for unauthenticated users
 function AuthNavigator() {
@@ -29,37 +38,114 @@ function AuthNavigator() {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
 
-// Main Navigator - for authenticated users (temporary placeholder)
+// Main Navigator - for authenticated users with bottom tabs
 function MainNavigator() {
-  const { colors } = useTheme();
-  const { user, logout } = useAuth();
+  const { colors, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={{ color: colors.text, fontSize: 18, marginBottom: 10 }}>
-        Welcome to FoodScan!
-      </Text>
-      
-      <Text style={{ color: colors.text, fontSize: 16, marginBottom: 20 }}>
-        Logged in as: {user?.username || user?.email}
-      </Text>
-      
-      <TouchableOpacity
-        style={[styles.themeButton, {
-          backgroundColor: colors.error,
-          borderColor: colors.error,
-        }]}
-        onPress={logout}
-      >
-        <Text style={[styles.buttonText, { color: colors.buttonText }]}>
-          Logout
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: colors.card,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        },
+        headerTintColor: colors.text,
+        headerTitleStyle: {
+          fontWeight: '600',
+          fontSize: 18,
+        },
+        tabBarStyle: {
+          backgroundColor: colors.card,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom ,
+          paddingTop: 8,
+          ...colors.shadow,
+        },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'Home') {
+            iconName = 'home';
+          } else if (route.name === 'FoodScan') {
+            iconName = 'camera';
+          } else if (route.name === 'Settings') {
+            iconName = 'cog';
+          }
+
+          return <FontAwesome name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          title: 'Home',
+          tabBarLabel: 'Home',
+        }}
+      />
+      <Tab.Screen 
+        name="FoodScan" 
+        component={FoodScanScreen}
+        options={{
+          title: 'Food Scanner',
+          tabBarLabel: 'Scan',
+        }}
+      />
+      <Tab.Screen 
+        name="Settings" 
+        component={SettingsScreen}
+        options={{
+          title: 'Settings',
+          tabBarLabel: 'Settings',
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// App Navigator - wraps MainNavigator with Stack for modal screens
+function AppNavigator() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Main" component={MainNavigator} />
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen}
+        options={{
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen 
+        name="ChangePassword" 
+        component={ChangePasswordScreen}
+        options={{
+          presentation: 'modal',
+        }}
+      />
+    </Stack.Navigator>
   );
 }
 
@@ -113,7 +199,7 @@ function AppContent() {
   return (
     <NavigationContainer>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+      {isAuthenticated ? <AppNavigator /> : <AuthNavigator />}
     </NavigationContainer>
   );
 }

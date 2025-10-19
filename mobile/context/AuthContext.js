@@ -170,6 +170,11 @@ export const AuthProvider = ({ children }) => {
     return await getProfile();
   };
 
+  // Update user directly (without API call)
+  const updateUser = async (updatedUser) => {
+    await updateUserState(updatedUser);
+  };
+
   // Auth context values
   const authContextValue = {
     // State
@@ -189,6 +194,7 @@ export const AuthProvider = ({ children }) => {
     updateAvatar,
     deleteAvatar,
     refreshUser,
+    updateUser,
   };
 
   return (
