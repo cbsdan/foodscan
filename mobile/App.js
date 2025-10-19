@@ -24,6 +24,9 @@ import SettingsScreen from './screens/SettingsScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import MealHistoryScreen from './screens/MealHistoryScreen';
+import MealDetailScreen from './screens/MealDetailScreen';
+import AboutScreen from './screens/AboutScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -69,7 +72,7 @@ function MainNavigator() {
           borderTopWidth: 1,
           borderTopColor: colors.border,
           height: 60 + insets.bottom,
-          paddingBottom: insets.bottom ,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
           ...colors.shadow,
         },
@@ -94,27 +97,27 @@ function MainNavigator() {
         },
       })}
     >
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name="Home"
         component={HomeScreen}
         options={{
-          title: 'Home',
+          headerShown: false,
           tabBarLabel: 'Home',
         }}
       />
-      <Tab.Screen 
-        name="FoodScan" 
+      <Tab.Screen
+        name="FoodScan"
         component={FoodScanScreen}
         options={{
-          title: 'Food Scanner',
-          tabBarLabel: 'Scan',
+          headerShown: false,
+          tabBarLabel: 'Food Scan',
         }}
       />
-      <Tab.Screen 
-        name="Settings" 
+      <Tab.Screen
+        name="Settings"
         component={SettingsScreen}
         options={{
-          title: 'Settings',
+          headerShown: false,
           tabBarLabel: 'Settings',
         }}
       />
@@ -131,18 +134,42 @@ function AppNavigator() {
       }}
     >
       <Stack.Screen name="Main" component={MainNavigator} />
-      <Stack.Screen 
-        name="EditProfile" 
+      <Stack.Screen
+        name="EditProfile"
         component={EditProfileScreen}
         options={{
           presentation: 'modal',
         }}
       />
-      <Stack.Screen 
-        name="ChangePassword" 
+      <Stack.Screen
+        name="ChangePassword"
         component={ChangePasswordScreen}
         options={{
           presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="MealHistory"
+        component={MealHistoryScreen}
+        options={{
+          headerShown: true,
+          title: 'Meal History',
+        }}
+      />
+      <Stack.Screen
+        name="MealDetail"
+        component={MealDetailScreen}
+        options={{
+          headerShown: true,
+          title: 'Meal Details',
+        }}
+      />
+      <Stack.Screen
+        name="About"
+        component={AboutScreen}
+        options={{
+          headerShown: true,
+          title: 'About FoodScan',
         }}
       />
     </Stack.Navigator>

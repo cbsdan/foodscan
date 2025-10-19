@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 15,
-    height: 50,
+    height: 60,
   },
   inputIcon: {
     marginRight: 10,

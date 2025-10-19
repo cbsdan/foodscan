@@ -306,7 +306,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 ]}
                 value={otp}
                 onChangeText={setOTP}
-                placeholder="Enter 5-digit code"
+                placeholder="0 0 0 0 0"
                 placeholderTextColor={colors.textSecondary}
                 keyboardType="number-pad"
                 maxLength={5}
@@ -605,7 +605,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 50,
+    height: 60,
     borderRadius: 12,
     paddingHorizontal: 16,
     fontSize: 16,
@@ -613,7 +613,7 @@ const styles = StyleSheet.create({
   },
   otpInput: {
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 16,
     letterSpacing: 8,
     fontWeight: '600',
   },

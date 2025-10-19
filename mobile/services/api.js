@@ -251,5 +251,152 @@ export const authService = {
   },
 };
 
+// Nutrient Service - Food scanning and meal management
+export const nutrientService = {
+  // Predict nutrients from image (without saving)
+  predictNutrients: async (imageUri) => {
+    try {
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      formData.append('image', {
+        uri: imageUri,
+        name: filename,
+        type
+      });
+      
+      const response = await api.post('/nutrients/predict-only', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000, // 60 seconds for ML prediction
+      });
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to predict nutrients');
+    }
+  },
+
+  // Save meal after user edits
+  saveMeal: async (mealData) => {
+    try {
+      const response = await api.post('/nutrients/save-meal', mealData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to save meal');
+    }
+  },
+
+  // Get user's meal history
+  getMeals: async (limit = 50, offset = 0, startDate = null, endDate = null) => {
+    try {
+      let url = `/nutrients/meals?limit=${limit}&offset=${offset}`;
+      if (startDate) url += `&start_date=${startDate}`;
+      if (endDate) url += `&end_date=${endDate}`;
+      
+      const response = await api.get(url);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get meals');
+    }
+  },
+
+  // Get specific meal by ID
+  getMealById: async (mealId) => {
+    try {
+      const response = await api.get(`/nutrients/meals/${mealId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get meal');
+    }
+  },
+
+  // Update meal
+  updateMeal: async (mealId, updateData) => {
+    try {
+      const response = await api.put(`/nutrients/meals/${mealId}`, updateData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to update meal');
+    }
+  },
+
+  // Delete meal
+  deleteMeal: async (mealId) => {
+    try {
+      const response = await api.delete(`/nutrients/meals/${mealId}`);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to delete meal');
+    }
+  },
+
+  // Get nutrition summary
+  getNutritionSummary: async (startDate = null, endDate = null) => {
+    try {
+      let url = '/nutrients/nutrition-summary';
+      const params = [];
+      if (startDate) params.push(`start_date=${startDate}`);
+      if (endDate) params.push(`end_date=${endDate}`);
+      if (params.length > 0) url += `?${params.join('&')}`;
+      
+      const response = await api.get(url);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get nutrition summary');
+    }
+  },
+
+  // Get meals by food type
+  getMealsByFoodType: async (foodType, limit = 50, offset = 0, startDate = null, endDate = null) => {
+    try {
+      let url = `/nutrients/meals/food-type/${foodType}?limit=${limit}&offset=${offset}`;
+      if (startDate) url += `&start_date=${startDate}`;
+      if (endDate) url += `&end_date=${endDate}`;
+      
+      const response = await api.get(url);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get meals by food type');
+    }
+  },
+
+  // Get food type summary
+  getFoodTypeSummary: async (startDate = null, endDate = null) => {
+    try {
+      let url = '/nutrients/food-type-summary';
+      const params = [];
+      if (startDate) params.push(`start_date=${startDate}`);
+      if (endDate) params.push(`end_date=${endDate}`);
+      if (params.length > 0) url += `?${params.join('&')}`;
+      
+      const response = await api.get(url);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get food type summary');
+    }
+  },
+
+  // Get valid food types
+  getValidFoodTypes: async () => {
+    try {
+      const response = await api.get('/nutrients/valid-food-types');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get valid food types');
+    }
+  },
+
+  // Get model status
+  getModelStatus: async () => {
+    try {
+      const response = await api.get('/nutrients/model-status');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get model status');
+    }
+  },
+};
+
 // Export the axios instance for custom requests
 export default api;
