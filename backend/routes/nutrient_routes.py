@@ -8,7 +8,7 @@ nutrient_bp = Blueprint('nutrients', __name__, url_prefix='/api/nutrients')
 @token_required
 def predict_nutrients_only():
     """
-    POST /api/v1/nutrients/predict-only
+    POST /api/nutrients/predict-only
     
     Predict nutrient values from uploaded food image without saving
     
@@ -42,7 +42,7 @@ def predict_nutrients_only():
 @token_required
 def save_meal():
     """
-    POST /api/v1/nutrients/save-meal
+    POST /api/nutrients/save-meal
     
     Save meal after user has edited the details
     
@@ -81,7 +81,7 @@ def save_meal():
 @nutrient_bp.route('/model-status', methods=['GET'])
 def get_model_status():
     """
-    GET /api/v1/nutrients/model-status
+    GET /api/nutrients/model-status
     
     Get the status of the ML model
     
@@ -159,7 +159,7 @@ def get_user_meals():
 @token_required
 def get_meal_by_id(meal_id):
     """
-    GET /api/v1/nutrients/meals/<meal_id>
+    GET /api/nutrients/meals/<meal_id>
     
     Get a specific meal by ID
     
@@ -185,7 +185,7 @@ def get_meal_by_id(meal_id):
 @token_required
 def update_meal(meal_id):
     """
-    PUT /api/v1/nutrients/meals/<meal_id>
+    PUT /api/nutrients/meals/<meal_id>
     
     Update meal details (meal_name and notes only)
     
@@ -210,7 +210,7 @@ def update_meal(meal_id):
 @token_required
 def delete_meal(meal_id):
     """
-    DELETE /api/v1/nutrients/meals/<meal_id>
+    DELETE /api/nutrients/meals/<meal_id>
     
     Delete a meal record
     
@@ -228,7 +228,7 @@ def delete_meal(meal_id):
 @token_required
 def get_nutrition_summary():
     """
-    GET /api/v1/nutrients/nutrition-summary
+    GET /api/nutrients/nutrition-summary
     
     Get nutrition summary for the user
     
@@ -265,7 +265,7 @@ def get_nutrition_summary():
 @token_required
 def get_meals_by_food_type(food_type):
     """
-    GET /api/v1/nutrients/meals/food-type/<food_type>
+    GET /api/nutrients/meals/food-type/<food_type>
     
     Get user's meals filtered by food type
     
@@ -294,7 +294,7 @@ def get_meals_by_food_type(food_type):
 @token_required
 def get_food_type_summary():
     """
-    GET /api/v1/nutrients/food-type-summary
+    GET /api/nutrients/food-type-summary
     
     Get nutrition summary grouped by food type
     
@@ -320,7 +320,7 @@ def get_food_type_summary():
 @nutrient_bp.route('/valid-food-types', methods=['GET'])
 def get_valid_food_types():
     """
-    GET /api/v1/nutrients/valid-food-types
+    GET /api/nutrients/valid-food-types
     
     Get list of valid food types
     
