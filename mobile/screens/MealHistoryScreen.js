@@ -101,7 +101,11 @@ const MealHistoryScreen = ({ navigation }) => {
       }
 
       if (result.success) {
-        setMeals(result.meals || []);
+        // The backend returns meals in the "data" property
+        const meals = result.data || [];
+        console.log('MealHistory - Meals array:', meals, 'Length:', meals.length);
+        
+        setMeals(Array.isArray(meals) ? meals : []);
       } else {
         toast.error(result.message || 'Failed to load meals');
       }
@@ -158,7 +162,9 @@ const MealHistoryScreen = ({ navigation }) => {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    // Add 'Z' to indicate UTC if not present
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const date = new Date(utcString);
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
@@ -174,9 +180,9 @@ const MealHistoryScreen = ({ navigation }) => {
       snacks: 'apple',
       drinks: 'glass',
       dessert: 'birthday-cake',
-      other: 'food'
+      other: 'cutlery'
     };
-    return icons[foodType] || 'food';
+    return icons[foodType?.toLowerCase()] || 'cutlery';
   };
 
   const getFoodTypeColor = (foodType) => {
@@ -213,10 +219,13 @@ const MealHistoryScreen = ({ navigation }) => {
   };
 
   const getFilteredMealsBySearch = () => {
-    if (!searchQuery.trim()) return meals;
+    // Defensive check: ensure meals is always an array
+    const mealsArray = Array.isArray(meals) ? meals : [];
+    
+    if (!searchQuery.trim()) return mealsArray;
     
     const query = searchQuery.toLowerCase();
-    return meals.filter(meal => 
+    return mealsArray.filter(meal => 
       (meal.meal_name && meal.meal_name.toLowerCase().includes(query)) ||
       (meal.notes && meal.notes.toLowerCase().includes(query)) ||
       (meal.food_type && meal.food_type.toLowerCase().includes(query))

@@ -103,18 +103,32 @@ const HomeScreen = ({ navigation }) => {
 
             // Load nutrition summary
             const summaryResult = await nutrientService.getNutritionSummary(startDate, endDate);
+            console.log('HomeScreen - Summary result:', summaryResult);
             if (summaryResult.success) {
-                setSummary(summaryResult);
+                // The API spreads response.data.data, so we get the summary fields directly
+                setSummary({
+                    meal_count: summaryResult.meal_count,
+                    total_nutrients: summaryResult.total_nutrients,
+                    average_nutrients: summaryResult.average_nutrients
+                });
             }
 
             // Load recent meals
             const mealsResult = await nutrientService.getMeals(5, 0, startDate, endDate);
+            
             if (mealsResult.success) {
-                setRecentMeals(mealsResult.meals || []);
+                // The backend returns meals in the "data" property
+                const meals = mealsResult.data || [];
+                console.log('HomeScreen - Meals array:', meals, 'Length:', meals.length);
+                
+                setRecentMeals(Array.isArray(meals) ? meals : []);
+            } else {
+                setRecentMeals([]);
             }
         } catch (error) {
             console.error('Error loading data:', error);
             toast.error('Failed to load nutrition data');
+            setRecentMeals([]); // Set empty array on error
         } finally {
             setIsLoading(false);
         }
@@ -127,7 +141,9 @@ const HomeScreen = ({ navigation }) => {
     }, [period]);
 
     const formatMealTime = (dateString) => {
-        const date = new Date(dateString);
+        // Add 'Z' to indicate UTC if not present
+        const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+        const date = new Date(utcString);
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     };
 

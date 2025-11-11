@@ -170,3 +170,37 @@ class CloudinaryService:
                 'success': False,
                 'error': str(e)
             }
+    
+    @staticmethod
+    def move_image(from_public_id, to_public_id):
+        """Move/rename image in Cloudinary"""
+        try:
+            # Use the rename API to move the image
+            result = cloudinary.uploader.rename(from_public_id, to_public_id)
+            
+            logging.info(f"Image moved successfully: {from_public_id} -> {to_public_id}")
+            
+            return {
+                'success': True,
+                'public_id': result.get('public_id'),
+                'url': result.get('secure_url')
+            }
+            
+        except Exception as e:
+            logging.error(f"Failed to move image: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+    
+    @staticmethod
+    def get_image_url(public_id):
+        """Get the URL for an image by its public_id"""
+        try:
+            # Generate secure URL from public_id
+            url = cloudinary.CloudinaryImage(public_id).build_url(secure=True)
+            logging.info(f"Generated URL for {public_id}: {url}")
+            return url
+        except Exception as e:
+            logging.error(f"Failed to get image URL: {str(e)}")
+            return None

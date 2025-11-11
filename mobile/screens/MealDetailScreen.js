@@ -54,8 +54,8 @@ const MealDetailScreen = ({ route, navigation }) => {
       console.log('API Response:', JSON.stringify(result, null, 2));
       
       if (result.success) {
-        // Backend returns meal data in 'data' field
-        const mealData = result;
+        // Backend returns meal inside 'meal' property
+        const mealData = result.meal || result.data || result;
         console.log('Meal data:', mealData);
         
         if (!mealData) {
@@ -168,7 +168,9 @@ const MealDetailScreen = ({ route, navigation }) => {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    // Add 'Z' to indicate UTC if not present
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const date = new Date(utcString);
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -178,7 +180,9 @@ const MealDetailScreen = ({ route, navigation }) => {
   };
 
   const formatTime = (dateString) => {
-    const date = new Date(dateString);
+    // Add 'Z' to indicate UTC if not present
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const date = new Date(utcString);
     return date.toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -194,9 +198,9 @@ const MealDetailScreen = ({ route, navigation }) => {
       snacks: 'apple',
       drinks: 'glass',
       dessert: 'birthday-cake',
-      other: 'food',
+      other: 'cutlery',
     };
-    return icons[foodType] || 'food';
+    return icons[foodType?.toLowerCase()] || 'cutlery';
   };
 
   const getFoodTypeColor = (foodType) => {
@@ -335,7 +339,7 @@ const MealDetailScreen = ({ route, navigation }) => {
               <View style={[styles.foodTypeBadge, { backgroundColor: colors.background, borderColor: colors.border }]}>
                 <FontAwesome name={getFoodTypeIcon(meal.food_type)} size={18} color={getFoodTypeColor(meal.food_type)} />
                 <Text style={[styles.foodTypeBadgeText, { color: colors.text }]}>
-                  {meal.food_type.charAt(0).toUpperCase() + meal.food_type.slice(1)}
+                  {meal.food_type ? meal.food_type.charAt(0).toUpperCase() + meal.food_type.slice(1) : 'Other'}
                 </Text>
               </View>
             )}

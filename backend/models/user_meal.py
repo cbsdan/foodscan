@@ -17,7 +17,8 @@ class UserMeal:
         'other'
     ]
     
-    def __init__(self, user_id, nutrients, image_url=None, image_public_id=None, meal_name=None, notes=None, food_type=None):
+    def __init__(self, user_id, nutrients, image_url=None, image_public_id=None, meal_name=None, notes=None, food_type=None, 
+                 serving_size=None, confidence_rate=None, prediction_source=None, ml_food_class=None, user_edited=False):
         self.user_id = ObjectId(user_id) if isinstance(user_id, str) else user_id
         self.nutrients = nutrients  # Dict with Calories, Protein (g), Carbs (g), Fat (g)
         self.image_url = image_url
@@ -25,6 +26,11 @@ class UserMeal:
         self.meal_name = meal_name  # Optional meal name
         self.notes = notes  # Optional user notes
         self.food_type = self._validate_food_type(food_type)  # breakfast, lunch, dinner, snacks, drinks, etc.
+        self.serving_size = serving_size  # Serving size (e.g., "1 bowl (300g)")
+        self.confidence_rate = confidence_rate  # Confidence percentage (0-100)
+        self.prediction_source = prediction_source  # 'gemini', 'ml', or 'manual'
+        self.ml_food_class = ml_food_class  # ML food class if ML was used
+        self.user_edited = user_edited  # Whether user manually edited the values
         self.meal_datetime = datetime.utcnow()  # When the meal was recorded
         self.created_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
@@ -51,13 +57,19 @@ class UserMeal:
             'meal_name': self.meal_name,
             'notes': self.notes,
             'food_type': self.food_type,
+            'serving_size': self.serving_size,
+            'confidence_rate': self.confidence_rate,
+            'prediction_source': self.prediction_source,
+            'ml_food_class': self.ml_food_class,
+            'user_edited': self.user_edited,
             'meal_datetime': self.meal_datetime,
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }
 
     @staticmethod
-    def create_meal(user_id, nutrients, image_url=None, image_public_id=None, meal_name=None, notes=None, food_type=None):
+    def create_meal(user_id, nutrients, image_url=None, image_public_id=None, meal_name=None, notes=None, food_type=None,
+                   serving_size=None, confidence_rate=None, prediction_source=None, ml_food_class=None, user_edited=False):
         """Create a new meal record"""
         try:
             db = get_db()
@@ -69,18 +81,27 @@ class UserMeal:
                 image_public_id=image_public_id,
                 meal_name=meal_name,
                 notes=notes,
-                food_type=food_type
+                food_type=food_type,
+                serving_size=serving_size,
+                confidence_rate=confidence_rate,
+                prediction_source=prediction_source,
+                ml_food_class=ml_food_class,
+                user_edited=user_edited
             )
             
-            result = db.user_meals.insert_one(meal.to_dict())
-            log_database_operation('insert_one', 'user_meals', meal.to_dict(), result)
+            meal_dict = meal.to_dict()
+            result = db.user_meals.insert_one(meal_dict)
+            log_database_operation('insert_one', 'user_meals', meal_dict, result)
             
             logging.info(f"Meal created successfully for user {user_id}: {result.inserted_id}")
+            
+            # Add the ID to the meal dictionary
+            meal_dict['_id'] = result.inserted_id
             
             return {
                 'success': True,
                 'meal_id': str(result.inserted_id),
-                'meal': meal.to_dict()
+                'meal': meal_dict
             }
             
         except Exception as e:
@@ -131,6 +152,11 @@ class UserMeal:
                     'meal_name': meal.get('meal_name'),
                     'notes': meal.get('notes'),
                     'food_type': meal.get('food_type', 'other'),
+                    'serving_size': meal.get('serving_size'),
+                    'confidence_rate': meal.get('confidence_rate'),
+                    'prediction_source': meal.get('prediction_source'),
+                    'ml_food_class': meal.get('ml_food_class'),
+                    'user_edited': meal.get('user_edited', False),
                     'meal_datetime': meal['meal_datetime'].isoformat(),
                     'created_at': meal['created_at'].isoformat(),
                     'updated_at': meal['updated_at'].isoformat()
@@ -173,6 +199,11 @@ class UserMeal:
                     'meal_name': meal.get('meal_name'),
                     'notes': meal.get('notes'),
                     'food_type': meal.get('food_type', 'other'),
+                    'serving_size': meal.get('serving_size'),
+                    'confidence_rate': meal.get('confidence_rate'),
+                    'prediction_source': meal.get('prediction_source'),
+                    'ml_food_class': meal.get('ml_food_class'),
+                    'user_edited': meal.get('user_edited', False),
                     'meal_datetime': meal['meal_datetime'].isoformat(),
                     'created_at': meal['created_at'].isoformat(),
                     'updated_at': meal['updated_at'].isoformat()

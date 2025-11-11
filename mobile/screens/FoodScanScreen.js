@@ -8,13 +8,14 @@ import {
     ScrollView,
     TextInput,
     ActivityIndicator,
-    Modal
+    Modal,
+    Alert
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
-import { nutrientService } from '../services/api';
+import { predictionService } from '../services/api';
 
 const FoodScanScreen = ({ navigation }) => {
     const { colors, isDarkMode } = useTheme();
@@ -22,13 +23,17 @@ const FoodScanScreen = ({ navigation }) => {
 
     const [scannedImage, setScannedImage] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [prediction, setPrediction] = useState(null);
+    const [predictions, setPredictions] = useState(null); // Stores both Gemini and ML predictions
+    const [selectedPrediction, setSelectedPrediction] = useState(null); // 'gemini' or 'ml'
+    const [showPredictionModal, setShowPredictionModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [tempImageData, setTempImageData] = useState(null); // Store temp image info
 
     // Editable meal data
     const [mealName, setMealName] = useState('');
     const [foodType, setFoodType] = useState('other');
     const [notes, setNotes] = useState('');
+    const [servingSize, setServingSize] = useState('');
     const [nutrients, setNutrients] = useState({
         Calories: 0,
         'Protein (g)': 0,
@@ -109,31 +114,68 @@ const FoodScanScreen = ({ navigation }) => {
     const processImage = async (imageUri) => {
         setScannedImage(imageUri);
         setIsLoading(true);
+        setPredictions(null);
+        setSelectedPrediction(null);
 
         try {
-            const result = await nutrientService.predictNutrients(imageUri);
+            // Call unified prediction API (both Gemini and ML)
+            const result = await predictionService.predictFood(imageUri, 5);
 
             if (result.success) {
-                setPrediction(result);
-                setNutrients(result.nutrients || {
-                    Calories: 0,
-                    'Protein (g)': 0,
-                    'Carbs (g)': 0,
-                    'Fat (g)': 0,
+                setPredictions(result.predictions);
+                setTempImageData({
+                    temp_image_url: result.temp_image_url,
+                    temp_image_public_id: result.temp_image_public_id,
+                    filename: result.filename
                 });
-                setShowEditModal(true);
-                toast.success('Nutrients predicted successfully!');
+                
+                // Show prediction selection modal
+                setShowPredictionModal(true);
+                toast.success('Food analyzed successfully!');
             } else {
-                toast.error(result.message || 'Failed to predict nutrients');
+                toast.error(result.message || 'Failed to analyze food image');
                 setScannedImage(null);
             }
         } catch (error) {
-            console.error('Error predicting nutrients:', error);
-            toast.error('An error occurred during prediction');
+            console.error('Error analyzing food:', error);
+            toast.error('An error occurred during analysis');
             setScannedImage(null);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSelectPrediction = (type) => {
+        // type is 'gemini' or 'ml'
+        setSelectedPrediction(type);
+        
+        let predictionData;
+        if (type === 'gemini' && predictions?.gemini) {
+            predictionData = predictions.gemini;
+            setMealName(predictionData.meal_name || '');
+            setServingSize(predictionData.serving_size || '');
+            setNutrients(predictionData.nutrients || {
+                Calories: 0,
+                'Protein (g)': 0,
+                'Carbs (g)': 0,
+                'Fat (g)': 0,
+            });
+        } else if (type === 'ml' && predictions?.ml) {
+            predictionData = predictions.ml;
+            // Use ML's top prediction class as meal name
+            const topPrediction = predictionData.classification?.predictions?.[0];
+            setMealName(topPrediction?.class_name?.replace(/_/g, ' ') || '');
+            setServingSize('1 serving');
+            setNutrients(predictionData.nutrients || {
+                Calories: 0,
+                'Protein (g)': 0,
+                'Carbs (g)': 0,
+                'Fat (g)': 0,
+            });
+        }
+        
+        setShowPredictionModal(false);
+        setShowEditModal(true);
     };
 
     const handleSaveMeal = async () => {
@@ -142,18 +184,41 @@ const FoodScanScreen = ({ navigation }) => {
             return;
         }
 
+        if (!selectedPrediction) {
+            toast.error('Please select a prediction source');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
             const mealData = {
-                nutrients,
+                selected_prediction: selectedPrediction,
                 meal_name: mealName,
+                nutrients,
                 food_type: foodType,
                 notes: notes.trim(),
-                temp_image_public_id: prediction?.temp_image_public_id,
+                serving_size: servingSize,
+                temp_image_public_id: tempImageData?.temp_image_public_id,
+                user_edited: false, // Can be enhanced to track actual edits
             };
 
-            const result = await nutrientService.saveMeal(mealData);
+            // Add ML-specific data if ML was selected
+            if (selectedPrediction === 'ml' && predictions?.ml?.classification?.predictions?.[0]) {
+                mealData.ml_food_class = predictions.ml.classification.predictions[0].class_name;
+                mealData.confidence_rate = predictions.ml.classification.predictions[0].confidence * 100;
+            } else if (selectedPrediction === 'gemini' && predictions?.gemini) {
+                mealData.confidence_rate = predictions.gemini.confidence_percentage;
+            }
+
+            console.log('=== SAVE MEAL DEBUG ===');
+            console.log('tempImageData:', tempImageData);
+            console.log('temp_image_public_id:', tempImageData?.temp_image_public_id);
+            console.log('Meal data to save:', JSON.stringify(mealData, null, 2));
+            console.log('======================');
+
+            const result = await predictionService.saveMeal(mealData);
+            console.log('Save meal result:', result);
 
             if (result.success) {
                 toast.success('Meal saved successfully!');
@@ -172,11 +237,15 @@ const FoodScanScreen = ({ navigation }) => {
 
     const handleCancelScan = () => {
         setScannedImage(null);
-        setPrediction(null);
+        setPredictions(null);
+        setSelectedPrediction(null);
+        setTempImageData(null);
+        setShowPredictionModal(false);
         setShowEditModal(false);
         setMealName('');
         setFoodType('other');
         setNotes('');
+        setServingSize('');
         setNutrients({
             Calories: 0,
             'Protein (g)': 0,
@@ -310,6 +379,235 @@ const FoodScanScreen = ({ navigation }) => {
                 </View>
             </ScrollView>
 
+            {/* Prediction Selection Modal */}
+            <Modal
+                visible={showPredictionModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowPredictionModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                Choose Your Prediction
+                            </Text>
+                            <Text style={[styles.subtitle, { color: colors.textSecondary, textAlign: 'center', marginBottom: 24 }]}>
+                                Select which AI prediction you prefer
+                            </Text>
+
+                            {/* Gemini AI Prediction */}
+                            {predictions?.gemini ? (
+                                <TouchableOpacity
+                                    style={[styles.predictionCard, { 
+                                        backgroundColor: colors.background,
+                                        borderColor: colors.primary,
+                                        borderWidth: 2,
+                                        ...colors.shadow
+                                    }]}
+                                    onPress={() => handleSelectPrediction('gemini')}
+                                >
+                                    <View style={styles.predictionHeader}>
+                                        <FontAwesome name="google" size={24} color={colors.primary} />
+                                        <Text style={[styles.predictionSource, { color: colors.primary }]}>
+                                            Gemini AI
+                                        </Text>
+                                        <View style={[styles.confidenceBadge, { backgroundColor: colors.primary }]}>
+                                            <Text style={styles.confidenceText}>
+                                                {predictions.gemini.confidence_percentage?.toFixed(0)}%
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    
+                                    <Text style={[styles.predictionMealName, { color: colors.text }]}>
+                                        {predictions.gemini.meal_name}
+                                    </Text>
+                                    
+                                    {predictions.gemini.serving_size && (
+                                        <Text style={[styles.predictionServing, { color: colors.textSecondary }]}>
+                                            Serving: {predictions.gemini.serving_size}
+                                        </Text>
+                                    )}
+                                    
+                                    <View style={styles.nutrientsSummary}>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.gemini.nutrients?.Calories?.toFixed(0) || 0}
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Calories
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.gemini.nutrients?.['Protein (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Protein
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.gemini.nutrients?.['Carbs (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Carbs
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.gemini.nutrients?.['Fat (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Fat
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={[styles.predictionCard, { 
+                                    backgroundColor: colors.background,
+                                    borderColor: colors.error || '#ef4444',
+                                    borderWidth: 1.5,
+                                }]}>
+                                    <View style={styles.predictionHeader}>
+                                        <FontAwesome name="google" size={24} color={colors.error || '#ef4444'} />
+                                        <Text style={[styles.predictionSource, { color: colors.error || '#ef4444' }]}>
+                                            Gemini AI
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.predictionError, { color: colors.textSecondary }]}>
+                                        ❌ Could not detect food in the image
+                                    </Text>
+                                    <Text style={[styles.predictionErrorHint, { color: colors.textSecondary }]}>
+                                        Please ensure the image clearly shows food items
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* ML Model Prediction */}
+                            {predictions?.ml?.classification && predictions?.ml?.nutrients ? (
+                                <TouchableOpacity
+                                    style={[styles.predictionCard, { 
+                                        backgroundColor: colors.background,
+                                        borderColor: colors.secondary || colors.primary,
+                                        borderWidth: 2,
+                                        marginTop: 16,
+                                        ...colors.shadow
+                                    }]}
+                                    onPress={() => handleSelectPrediction('ml')}
+                                >
+                                    <View style={styles.predictionHeader}>
+                                        <FontAwesome name="microchip" size={24} color={colors.secondary || colors.primary} />
+                                        <Text style={[styles.predictionSource, { color: colors.secondary || colors.primary }]}>
+                                            ML Model
+                                        </Text>
+                                        <View style={[styles.confidenceBadge, { backgroundColor: colors.secondary || colors.primary }]}>
+                                            <Text style={styles.confidenceText}>
+                                                {(predictions.ml.classification.predictions[0]?.confidence * 100)?.toFixed(0)}%
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    
+                                    <Text style={[styles.predictionMealName, { color: colors.text }]}>
+                                        {predictions.ml.classification.predictions[0]?.class_name?.replace(/_/g, ' ')}
+                                    </Text>
+                                    
+                                    <Text style={[styles.predictionServing, { color: colors.textSecondary }]}>
+                                        Food Detected: {predictions.ml.classification.is_food ? 'Yes' : 'No'}
+                                    </Text>
+                                    
+                                    <View style={styles.nutrientsSummary}>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.ml.nutrients?.Calories?.toFixed(0) || 0}
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Calories
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.ml.nutrients?.['Protein (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Protein
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.ml.nutrients?.['Carbs (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Carbs
+                                            </Text>
+                                        </View>
+                                        <View style={styles.nutrientItem}>
+                                            <Text style={[styles.nutrientValue, { color: colors.text }]}>
+                                                {predictions.ml.nutrients?.['Fat (g)']?.toFixed(1) || 0}g
+                                            </Text>
+                                            <Text style={[styles.nutrientLabel, { color: colors.textSecondary }]}>
+                                                Fat
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    
+                                    {/* Show top 3 predictions */}
+                                    {predictions.ml.classification.predictions.length > 1 && (
+                                        <View style={styles.alternatePredictions}>
+                                            <Text style={[styles.alternateLabel, { color: colors.textSecondary }]}>
+                                                Other possibilities:
+                                            </Text>
+                                            {predictions.ml.classification.predictions.slice(1, 3).map((pred, index) => (
+                                                <Text key={index} style={[styles.alternateItem, { color: colors.textSecondary }]}>
+                                                    • {pred.class_name.replace(/_/g, ' ')} ({(pred.confidence * 100).toFixed(0)}%)
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    )}
+                                </TouchableOpacity>
+                            ) : (
+                                <View style={[styles.predictionCard, { 
+                                    backgroundColor: colors.background,
+                                    borderColor: colors.error || '#ef4444',
+                                    borderWidth: 1.5,
+                                    marginTop: 16,
+                                }]}>
+                                    <View style={styles.predictionHeader}>
+                                        <FontAwesome name="microchip" size={24} color={colors.error || '#ef4444'} />
+                                        <Text style={[styles.predictionSource, { color: colors.error || '#ef4444' }]}>
+                                            ML Model
+                                        </Text>
+                                    </View>
+                                    <Text style={[styles.predictionError, { color: colors.textSecondary }]}>
+                                        ❌ Could not classify the image
+                                    </Text>
+                                    <Text style={[styles.predictionErrorHint, { color: colors.textSecondary }]}>
+                                        The ML model could not identify food in this image
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* Cancel Button */}
+                            <TouchableOpacity
+                                style={[styles.modalButton, { 
+                                    backgroundColor: colors.border,
+                                    marginTop: 24
+                                }]}
+                                onPress={() => {
+                                    setShowPredictionModal(false);
+                                    handleCancelScan();
+                                }}
+                            >
+                                <Text style={[styles.modalButtonText, { color: colors.text }]}>
+                                    Cancel
+                                </Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
             {/* Edit Meal Modal */}
             <Modal
                 visible={showEditModal}
@@ -324,6 +622,22 @@ const FoodScanScreen = ({ navigation }) => {
                                 Edit Meal Details
                             </Text>
 
+                            {/* Prediction Source Indicator */}
+                            {selectedPrediction && (
+                                <View style={[styles.predictionSourceBadge, { 
+                                    backgroundColor: selectedPrediction === 'gemini' ? colors.primary : (colors.secondary || colors.primary)
+                                }]}>
+                                    <FontAwesome 
+                                        name={selectedPrediction === 'gemini' ? 'google' : 'microchip'} 
+                                        size={16} 
+                                        color="#fff" 
+                                    />
+                                    <Text style={styles.predictionSourceText}>
+                                        Using {selectedPrediction === 'gemini' ? 'Gemini AI' : 'ML Model'} prediction
+                                    </Text>
+                                </View>
+                            )}
+
                             {/* Meal Name */}
                             <Text style={[styles.inputLabel, { color: colors.text }]}>Meal Name *</Text>
                             <TextInput
@@ -336,6 +650,20 @@ const FoodScanScreen = ({ navigation }) => {
                                 placeholderTextColor={colors.textSecondary}
                                 value={mealName}
                                 onChangeText={setMealName}
+                            />
+
+                            {/* Serving Size */}
+                            <Text style={[styles.inputLabel, { color: colors.text }]}>Serving Size</Text>
+                            <TextInput
+                                style={[styles.input, {
+                                    backgroundColor: colors.background,
+                                    color: colors.text,
+                                    borderColor: colors.border
+                                }]}
+                                placeholder="e.g., 1 bowl (300g)"
+                                placeholderTextColor={colors.textSecondary}
+                                value={servingSize}
+                                onChangeText={setServingSize}
                             />
 
                             {/* Food Type */}
@@ -678,6 +1006,107 @@ const styles = StyleSheet.create({
     },
     modalButtonText: {
         fontSize: 16,
+        fontWeight: '600',
+    },
+    predictionCard: {
+        padding: 20,
+        borderRadius: 16,
+        marginBottom: 12,
+        gap: 12,
+    },
+    predictionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 8,
+    },
+    predictionSource: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        flex: 1,
+    },
+    confidenceBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    confidenceText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    predictionMealName: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        textTransform: 'capitalize',
+        marginBottom: 4,
+    },
+    predictionServing: {
+        fontSize: 14,
+        marginBottom: 12,
+    },
+    nutrientsSummary: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(128, 128, 128, 0.2)',
+    },
+    nutrientItem: {
+        alignItems: 'center',
+        gap: 4,
+    },
+    nutrientValue: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    nutrientLabel: {
+        fontSize: 11,
+        textTransform: 'uppercase',
+    },
+    alternatePredictions: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(128, 128, 128, 0.2)',
+    },
+    alternateLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 6,
+    },
+    alternateItem: {
+        fontSize: 12,
+        marginLeft: 8,
+        marginBottom: 4,
+    },
+    predictionError: {
+        fontSize: 16,
+        textAlign: 'center',
+        padding: 20,
+        paddingBottom: 8,
+    },
+    predictionErrorHint: {
+        fontSize: 13,
+        textAlign: 'center',
+        paddingHorizontal: 20,
+        paddingBottom: 12,
+        fontStyle: 'italic',
+        opacity: 0.8,
+    },
+    predictionSourceBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        marginBottom: 16,
+        alignSelf: 'flex-start',
+    },
+    predictionSourceText: {
+        color: '#fff',
+        fontSize: 14,
         fontWeight: '600',
     },
 });

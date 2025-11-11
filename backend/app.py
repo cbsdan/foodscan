@@ -13,9 +13,12 @@ from services.cloudinary_service import init_cloudinary
 from services.email_service import init_mail
 from services.ml_service import init_ml_service
 
+from services.gemini_service import init_gemini_service
+
 #Routes
 from routes.auth_routes import auth_bp
-from routes.nutrient_routes import nutrient_bp
+from routes.prediction_routes import prediction_bp
+
 
 # Load environment variables
 load_dotenv()
@@ -72,6 +75,14 @@ def create_app():
         logging.error(f"Failed to initialize ML Service: {str(e)}")
         logging.warning("ML features will be disabled")
 
+    # Initialize Gemini AI Service
+    try:
+        init_gemini_service()
+        logging.info("Gemini AI Service initialized successfully")
+    except Exception as e:
+        logging.error(f"Failed to initialize Gemini AI Service: {str(e)}")
+        logging.warning("Gemini AI features will be disabled")
+    
     # Middleware for request logging
     @app.before_request
     def before_request():
@@ -103,8 +114,10 @@ def create_app():
         return jsonify({'error': 'File too large'}), 413
     
 
+    # Register blueprints
     app.register_blueprint(auth_bp)
-    app.register_blueprint(nutrient_bp)
+    app.register_blueprint(prediction_bp)
+
     
     return app
 

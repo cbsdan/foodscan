@@ -251,6 +251,57 @@ export const authService = {
   },
 };
 
+// Prediction Service - Unified food prediction using Gemini + ML
+export const predictionService = {
+  // Predict food using both Gemini AI and ML models
+  predictFood: async (imageUri, topk = 5) => {
+    try {
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      
+      formData.append('image', {
+        uri: imageUri,
+        name: filename,
+        type
+      });
+      formData.append('topk', topk.toString());
+
+      const response = await api.post('/prediction/predict', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000, // 60 seconds timeout for both AI services
+      });
+
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to predict food');
+    }
+  },
+
+  // Save meal after user selects their preferred prediction
+  saveMeal: async (mealData) => {
+    try {
+      const response = await api.post('/prediction/save-meal', mealData);
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to save meal');
+    }
+  },
+
+  // Get prediction service status
+  getStatus: async () => {
+    try {
+      const response = await api.get('/prediction/status');
+      return handleResponse(response);
+    } catch (error) {
+      return handleError(error, 'Failed to get service status');
+    }
+  },
+};
+
 // Nutrient Service - Food scanning and meal management
 export const nutrientService = {
   // Predict nutrients from image (without saving)
@@ -290,7 +341,7 @@ export const nutrientService = {
   // Get user's meal history
   getMeals: async (limit = 50, offset = 0, startDate = null, endDate = null) => {
     try {
-      let url = `/nutrients/meals?limit=${limit}&offset=${offset}`;
+      let url = `/prediction/meals?limit=${limit}&offset=${offset}`;
       if (startDate) url += `&start_date=${startDate}`;
       if (endDate) url += `&end_date=${endDate}`;
       
@@ -304,7 +355,7 @@ export const nutrientService = {
   // Get specific meal by ID
   getMealById: async (mealId) => {
     try {
-      const response = await api.get(`/nutrients/meals/${mealId}`);
+      const response = await api.get(`/prediction/meals/${mealId}`);
       return handleResponse(response);
     } catch (error) {
       return handleError(error, 'Failed to get meal');
@@ -314,7 +365,7 @@ export const nutrientService = {
   // Update meal
   updateMeal: async (mealId, updateData) => {
     try {
-      const response = await api.put(`/nutrients/meals/${mealId}`, updateData);
+      const response = await api.put(`/prediction/meals/${mealId}`, updateData);
       return handleResponse(response);
     } catch (error) {
       return handleError(error, 'Failed to update meal');
@@ -324,7 +375,7 @@ export const nutrientService = {
   // Delete meal
   deleteMeal: async (mealId) => {
     try {
-      const response = await api.delete(`/nutrients/meals/${mealId}`);
+      const response = await api.delete(`/prediction/meals/${mealId}`);
       return handleResponse(response);
     } catch (error) {
       return handleError(error, 'Failed to delete meal');
@@ -334,7 +385,7 @@ export const nutrientService = {
   // Get nutrition summary
   getNutritionSummary: async (startDate = null, endDate = null) => {
     try {
-      let url = '/nutrients/nutrition-summary';
+      let url = '/prediction/nutrition-summary';
       const params = [];
       if (startDate) params.push(`start_date=${startDate}`);
       if (endDate) params.push(`end_date=${endDate}`);
