@@ -153,6 +153,7 @@ const MealHistoryScreen = ({ navigation }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
@@ -162,6 +163,7 @@ const MealHistoryScreen = ({ navigation }) => {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
     // Add 'Z' to indicate UTC if not present
     const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
     const date = new Date(utcString);
@@ -225,11 +227,18 @@ const MealHistoryScreen = ({ navigation }) => {
     if (!searchQuery.trim()) return mealsArray;
     
     const query = searchQuery.toLowerCase();
-    return mealsArray.filter(meal => 
-      (meal.meal_name && meal.meal_name.toLowerCase().includes(query)) ||
-      (meal.notes && meal.notes.toLowerCase().includes(query)) ||
-      (meal.food_type && meal.food_type.toLowerCase().includes(query))
-    );
+    return mealsArray.filter(meal => {
+      // Handle corrupted meal_name (when it's an object instead of string)
+      const mealName = typeof meal.meal_name === 'string' 
+        ? meal.meal_name 
+        : (typeof meal.meal_name === 'object' && meal.meal_name?.meal_name 
+          ? meal.meal_name.meal_name 
+          : '');
+      
+      return (mealName && mealName.toLowerCase().includes(query)) ||
+        (meal.notes && meal.notes.toLowerCase().includes(query)) ||
+        (meal.food_type && meal.food_type.toLowerCase().includes(query));
+    });
   };
 
   const renderMealCard = (meal) => {
@@ -267,7 +276,11 @@ const MealHistoryScreen = ({ navigation }) => {
             
             <View style={styles.mealInfo}>
               <Text style={[styles.mealName, { color: colors.text }]} numberOfLines={1}>
-                {meal.meal_name || 'Unnamed Meal'}
+                {typeof meal.meal_name === 'string' 
+                  ? meal.meal_name 
+                  : (typeof meal.meal_name === 'object' && meal.meal_name?.meal_name 
+                    ? meal.meal_name.meal_name 
+                    : 'Unnamed Meal')}
               </Text>
               
               <View style={styles.mealMeta}>

@@ -356,7 +356,18 @@ export const nutrientService = {
   getMealById: async (mealId) => {
     try {
       const response = await api.get(`/prediction/meals/${mealId}`);
-      return handleResponse(response);
+      // Don't spread data to avoid spreading meal object fields
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+          meal: response.data.data // Return meal in 'meal' property for consistency
+        };
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to get meal'
+      };
     } catch (error) {
       return handleError(error, 'Failed to get meal');
     }
@@ -366,7 +377,18 @@ export const nutrientService = {
   updateMeal: async (mealId, updateData) => {
     try {
       const response = await api.put(`/prediction/meals/${mealId}`, updateData);
-      return handleResponse(response);
+      // Don't spread data to avoid spreading meal object fields
+      if (response.data.success) {
+        return {
+          success: true,
+          message: response.data.message,
+          data: response.data.data // Keep data nested
+        };
+      }
+      return {
+        success: false,
+        message: response.data.message || 'Failed to update meal'
+      };
     } catch (error) {
       return handleError(error, 'Failed to update meal');
     }

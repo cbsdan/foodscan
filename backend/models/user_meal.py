@@ -227,28 +227,51 @@ class UserMeal:
             }
 
     @staticmethod
-    def update_meal(meal_id, user_id, meal_name=None, notes=None, food_type=None):
-        """Update meal details (meal_name, notes, and food_type)"""
+    def update_meal(meal_id, user_id, update_dict):
+        """Update meal details (meal_name, notes, food_type, and nutrients)"""
         try:
             db = get_db()
             
             update_data = {
-                'updated_at': datetime.utcnow()
+                'updated_at': datetime.utcnow(),
+                'user_edited': True  # Mark as user edited
             }
             
-            if meal_name is not None:
-                update_data['meal_name'] = meal_name
-            if notes is not None:
-                update_data['notes'] = notes
-            if food_type is not None:
-                # Validate food_type
+            # Handle meal_name - ensure it's a string
+            if 'meal_name' in update_dict and update_dict['meal_name'] is not None:
+                meal_name_value = update_dict['meal_name']
+                # If it's accidentally an object, extract the meal_name field
+                if isinstance(meal_name_value, dict):
+                    meal_name_value = meal_name_value.get('meal_name', '')
+                update_data['meal_name'] = str(meal_name_value).strip()
+            
+            # Handle notes - ensure it's a string
+            if 'notes' in update_dict and update_dict['notes'] is not None:
+                notes_value = update_dict['notes']
+                if isinstance(notes_value, dict):
+                    notes_value = notes_value.get('notes', '')
+                update_data['notes'] = str(notes_value).strip()
+            
+            # Handle food_type - ensure it's a valid string
+            if 'food_type' in update_dict and update_dict['food_type'] is not None:
+                food_type_value = update_dict['food_type']
+                if isinstance(food_type_value, dict):
+                    food_type_value = food_type_value.get('food_type', 'other')
                 valid_types = UserMeal.VALID_MEAL_TYPES
-                food_type_lower = food_type.lower().strip()
+                food_type_lower = str(food_type_value).lower().strip()
                 if food_type_lower in valid_types:
                     update_data['food_type'] = food_type_lower
                 else:
-                    logging.warning(f"Invalid food type '{food_type}', not updating")
-                    # Don't update food_type if invalid
+                    logging.warning(f"Invalid food type '{food_type_value}', using 'other'")
+                    update_data['food_type'] = 'other'
+            
+            # Handle nutrients - ensure it's a dict
+            if 'nutrients' in update_dict and update_dict['nutrients'] is not None:
+                nutrients_value = update_dict['nutrients']
+                if isinstance(nutrients_value, dict):
+                    update_data['nutrients'] = nutrients_value
+                else:
+                    logging.warning(f"Nutrients is not a dict, skipping update")
             
             query = {
                 '_id': ObjectId(meal_id),
@@ -258,16 +281,20 @@ class UserMeal:
             result = db.user_meals.update_one(query, {'$set': update_data})
             log_database_operation('update_one', 'user_meals', query, result)
             
-            if result.modified_count > 0:
-                return {
-                    'success': True,
-                    'message': 'Meal updated successfully'
-                }
-            else:
+            if result.matched_count == 0:
                 return {
                     'success': False,
-                    'error': 'Meal not found or no changes made'
+                    'error': 'Meal not found'
                 }
+            
+            # Get updated meal to return
+            updated_meal = UserMeal.get_meal_by_id(meal_id, user_id)
+            
+            return {
+                'success': True,
+                'message': 'Meal updated successfully',
+                'meal': updated_meal
+            }
                 
         except Exception as e:
             logging.error(f"Error updating meal {meal_id}: {str(e)}")

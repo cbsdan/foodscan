@@ -76,8 +76,6 @@ For valid food images, use exactly this JSON format:
     "nutrients": {
         "Calories": <number>,
         "Carbs (g)": <number>,
-        "Added Sugars (g)": <number>,
-        "Fiber (g)": <number>,
         "Protein (g)": <number>,
         "Fat (g)": <number>
     },
@@ -129,8 +127,7 @@ Provide realistic nutritional estimates based on typical serving sizes. Return O
                         raise ValueError("Invalid response structure from Gemini")
                     
                     # Ensure all required nutrients are present
-                    required_nutrients = ['Calories', 'Carbs (g)', 'Added Sugars (g)', 
-                                        'Fiber (g)', 'Protein (g)', 'Fat (g)']
+                    required_nutrients = ['Calories', 'Carbs (g)', 'Protein (g)', 'Fat (g)']
                     for nutrient in required_nutrients:
                         if nutrient not in result['nutrients']:
                             result['nutrients'][nutrient] = 0.0

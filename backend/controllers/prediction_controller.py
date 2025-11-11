@@ -405,18 +405,18 @@ class PredictionController:
         """Get specific meal by ID"""
         try:
             user_id = get_current_user_id()
-            meal = UserMeal.get_meal_by_id(meal_id, user_id)
+            result = UserMeal.get_meal_by_id(meal_id, user_id)
             
-            if not meal:
+            if not result.get('success'):
                 return jsonify({
                     'success': False,
-                    'error': 'Meal not found'
+                    'error': result.get('error', 'Meal not found')
                 }), 404
             
             return jsonify({
                 'success': True,
                 'message': 'Meal retrieved successfully',
-                'data': meal
+                'data': result.get('meal')  # Extract just the meal data
             }), 200
             
         except Exception as e:

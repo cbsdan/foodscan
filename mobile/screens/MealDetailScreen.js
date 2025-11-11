@@ -67,7 +67,13 @@ const MealDetailScreen = ({ route, navigation }) => {
         
         setMeal(mealData);
         // Initialize edit form with current values
-        setEditedMealName(mealData.meal_name || '');
+        // Handle corrupted meal_name (when it's an object instead of string)
+        const mealName = typeof mealData.meal_name === 'string' 
+          ? mealData.meal_name 
+          : (typeof mealData.meal_name === 'object' && mealData.meal_name?.meal_name 
+            ? mealData.meal_name.meal_name 
+            : '');
+        setEditedMealName(mealName);
         setEditedFoodType(mealData.food_type || 'other');
         setEditedNotes(mealData.notes || '');
         setEditedNutrients({
@@ -78,12 +84,14 @@ const MealDetailScreen = ({ route, navigation }) => {
         });
       } else {
         console.error('API returned error:', result.error || result.message);
-        toast.error(result.message || result.error || 'Failed to load meal details');
+        const errorMsg = String(result.message || result.error || 'Failed to load meal details');
+        toast.error(errorMsg);
         navigation.goBack();
       }
     } catch (error) {
       console.error('Error loading meal details:', error);
-      toast.error('An error occurred while loading meal details');
+      const errorMsg = typeof error === 'object' ? error.message || 'An error occurred while loading meal details' : String(error);
+      toast.error(errorMsg);
       navigation.goBack();
     } finally {
       setIsLoading(false);
@@ -96,7 +104,13 @@ const MealDetailScreen = ({ route, navigation }) => {
 
   const handleCancelEdit = () => {
     // Reset to original values
-    setEditedMealName(meal.meal_name || '');
+    // Handle corrupted meal_name (when it's an object instead of string)
+    const mealName = typeof meal.meal_name === 'string' 
+      ? meal.meal_name 
+      : (typeof meal.meal_name === 'object' && meal.meal_name?.meal_name 
+        ? meal.meal_name.meal_name 
+        : '');
+    setEditedMealName(mealName);
     setEditedFoodType(meal.food_type || 'other');
     setEditedNotes(meal.notes || '');
     setEditedNutrients({
@@ -128,13 +142,21 @@ const MealDetailScreen = ({ route, navigation }) => {
         },
       };
 
+      console.log('Updating meal with data:', updateData);
       const result = await nutrientService.updateMeal(mealId, updateData);
+      console.log('Update result:', JSON.stringify(result, null, 2));
+      console.log('Result type:', typeof result);
+      console.log('Result.success:', result.success);
+      console.log('Result.message:', result.message);
+      
       if (result.success) {
-        toast.success('Meal updated successfully');
+        toast.success(String(result.message || 'Meal updated successfully'));
         setIsEditing(false);
         await loadMealDetails(); // Reload to get updated data
       } else {
-        toast.error(result.message || 'Failed to update meal');
+        const errorMsg = String(result.message || result.error || 'Failed to update meal');
+        console.log('Error message to show:', errorMsg);
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Error updating meal:', error);
@@ -168,6 +190,7 @@ const MealDetailScreen = ({ route, navigation }) => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     // Add 'Z' to indicate UTC if not present
     const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
     const date = new Date(utcString);
@@ -180,6 +203,7 @@ const MealDetailScreen = ({ route, navigation }) => {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
     // Add 'Z' to indicate UTC if not present
     const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
     const date = new Date(utcString);
@@ -296,7 +320,13 @@ const MealDetailScreen = ({ route, navigation }) => {
                 placeholderTextColor={colors.textSecondary}
               />
             ) : (
-              <Text style={[styles.value, { color: colors.text }]}>{meal.meal_name}</Text>
+              <Text style={[styles.value, { color: colors.text }]}>
+                {typeof meal.meal_name === 'string' 
+                  ? meal.meal_name 
+                  : (typeof meal.meal_name === 'object' && meal.meal_name?.meal_name 
+                    ? meal.meal_name.meal_name 
+                    : 'Unnamed Meal')}
+              </Text>
             )}
           </View>
 
