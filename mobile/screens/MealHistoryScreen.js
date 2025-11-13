@@ -430,42 +430,6 @@ const MealHistoryScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Food Type Filter */}
-            <View style={styles.filterSection}>
-              <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>Food Type</Text>
-              <View style={styles.filterChips}>
-                {foodTypes.map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[
-                      styles.filterChip,
-                      styles.foodTypeFilterChip,
-                      {
-                        backgroundColor: selectedFoodType === type ? getFoodTypeColor(type) : colors.background,
-                        borderColor: getFoodTypeColor(type),
-                      },
-                    ]}
-                    onPress={() => setSelectedFoodType(type)}
-                  >
-                    <FontAwesome
-                      name={getFoodTypeIcon(type)}
-                      size={14}
-                      color={selectedFoodType === type ? '#fff' : getFoodTypeColor(type)}
-                    />
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        styles.foodTypeFilterText,
-                        { color: selectedFoodType === type ? '#fff' : getFoodTypeColor(type) },
-                      ]}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
             {/* Results Count */}
             <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
               {filteredMeals.length} {filteredMeals.length === 1 ? 'meal' : 'meals'} found
